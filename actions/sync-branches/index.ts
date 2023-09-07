@@ -7,11 +7,8 @@ import { Api } from "@octokit/plugin-rest-endpoint-methods/dist-types/types";
 const [owner, repo] = process.env.GITHUB_REPOSITORY?.split("/") ?? ["", ""];
 
 async function run() {
-  console.log("running my own version!");
-  console.log("12");
   try {
     const fromBranch = core.getInput("FROM_BRANCH", { required: true });
-    console.log("14");
     const toBranch = core.getInput("TO_BRANCH", { required: true });
     const githubToken = core.getInput("GITHUB_TOKEN", { required: true });
     const pullRequestTitle = core.getInput("PULL_REQUEST_TITLE");
@@ -27,14 +24,12 @@ async function run() {
     const team_reviewers = JSON.parse(core.getInput("TEAM_REVIEWERS"));
     const labels = JSON.parse(core.getInput("LABELS"));
     let isMerged = false;
-    console.log("30");
 
     console.log(
       `Should a pull request to ${toBranch} from ${fromBranch} be created?`
     );
 
     const octokit = github.getOctokit(githubToken);
-    console.log("37");
 
     const { data: currentPulls } = await octokit.rest.pulls.list({
       owner,
