@@ -27,13 +27,16 @@ jobs:
         id: changesets
         uses: changesets/action@v1
         with:
-          # This expects you to have a script called release which does a build for your packages and calls changeset publish
-          publish: yarn release
           version: yarn version:packages
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish
-        if: steps.changesets.outputs.published == 'true'
-        # You can do something when a publish should happen.
-        run: yarn test-publish
+      - name: Open Release PR
+        if: steps.changesets.outputs.hasChangesets == 'false'
+        uses: tretuna/sync-branches@1.4.0
+        with:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          FROM_BRANCH: "canary"
+          TO_BRANCH: "main"
+          REVIEWERS: '["julianbenegas", "moransantiago", "justkahdri"]'
+          PULL_REQUEST_TITLE: "Release"
