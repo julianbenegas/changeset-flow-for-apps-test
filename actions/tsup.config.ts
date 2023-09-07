@@ -23,7 +23,7 @@ export default defineConfig(async (options) => {
   });
 
   return {
-    minify: !options.watch,
+    minify: false,
     dts: false,
     entry,
     outDir: "actions/dist",
