@@ -1,0 +1,42 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - canary
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js 18.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18.x
+
+      - name: Install Dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Create Release Pull Request # or Publish to npm
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          version: yarn version:packages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Open Release PR
+        if: steps.changesets.outputs.hasChangesets == 'false'
+        uses: tretuna/sync-branches@1.4.0
+        with:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          FROM_BRANCH: "canary"
+          TO_BRANCH: "main"
+          REVIEWERS: '["julianbenegas", "moransantiago", "justkahdri"]'
+          PULL_REQUEST_TITLE: "Release"
