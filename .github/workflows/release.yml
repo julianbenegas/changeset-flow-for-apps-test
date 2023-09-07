@@ -19,6 +19,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 18.x
+          cache: "yarn"
 
       - name: Install Dependencies
         run: yarn install --frozen-lockfile
@@ -41,4 +42,4 @@ jobs:
           TO_BRANCH: "main"
           # REVIEWERS: '["julianbenegas", "moransantiago", "justkahdri"]'
           PULL_REQUEST_TITLE: "Release"
-          PULL_REQUEST_AUTO_MERGE_METHOD: "merge"
+          # PULL_REQUEST_AUTO_MERGE_METHOD: "merge"
