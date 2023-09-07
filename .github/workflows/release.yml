@@ -31,12 +31,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Open Release PR
+      - name: Opening pull request
+        id: pull
         if: steps.changesets.outputs.hasChangesets == 'false'
-        uses: tretuna/sync-branches@1.4.0
+        uses: ./actions/dist/sync-branches
         with:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
           FROM_BRANCH: "canary"
           TO_BRANCH: "main"
           REVIEWERS: '["julianbenegas", "moransantiago", "justkahdri"]'
           PULL_REQUEST_TITLE: "Release"
+          PULL_REQUEST_AUTO_MERGE_METHOD: "merge"
