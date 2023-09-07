@@ -1,4 +1,4 @@
-import core from "@actions/core";
+import * as core from "@actions/core";
 import github from "@actions/github";
 import { Octokit } from "@octokit/core";
 import { PaginateInterface } from "@octokit/plugin-paginate-rest";

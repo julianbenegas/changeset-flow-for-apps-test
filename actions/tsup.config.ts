@@ -29,6 +29,7 @@ export default defineConfig(async (options) => {
     outDir: "actions/dist",
     format: ["cjs"],
     target: "node18",
+    bundle: true,
     async onSuccess() {
       // copy action.yml files into dist
       actions.forEach((a) => {
