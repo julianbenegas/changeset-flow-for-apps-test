@@ -1,5 +1,5 @@
 import * as core from "@actions/core";
-import github from "@actions/github";
+import * as github from "@actions/github";
 import { Octokit } from "@octokit/core";
 import { PaginateInterface } from "@octokit/plugin-paginate-rest";
 import { Api } from "@octokit/plugin-rest-endpoint-methods/dist-types/types";
@@ -9,120 +9,124 @@ const [owner, repo] = process.env.GITHUB_REPOSITORY?.split("/") ?? ["", ""];
 async function run() {
   console.log("running my own version!");
   console.log("12");
-  const fromBranch = core.getInput("FROM_BRANCH", { required: true });
-  console.log("14");
-  const toBranch = core.getInput("TO_BRANCH", { required: true });
-  const githubToken = core.getInput("GITHUB_TOKEN", { required: true });
-  const pullRequestTitle = core.getInput("PULL_REQUEST_TITLE");
-  const pullRequestBody = core.getInput("PULL_REQUEST_BODY");
-  const pullRequestAutoMergeMethod = core.getInput(
-    "PULL_REQUEST_AUTO_MERGE_METHOD"
-  ) as "merge" | "squash" | "rebase" | undefined;
-  const pullRequestIsDraft =
-    core.getInput("PULL_REQUEST_IS_DRAFT").toLowerCase() === "true";
-  const contentComparison =
-    core.getInput("CONTENT_COMPARISON").toLowerCase() === "true";
-  const reviewers = JSON.parse(core.getInput("REVIEWERS"));
-  const team_reviewers = JSON.parse(core.getInput("TEAM_REVIEWERS"));
-  const labels = JSON.parse(core.getInput("LABELS"));
-  let isMerged = false;
-  console.log("30");
+  try {
+    const fromBranch = core.getInput("FROM_BRANCH", { required: true });
+    console.log("14");
+    const toBranch = core.getInput("TO_BRANCH", { required: true });
+    const githubToken = core.getInput("GITHUB_TOKEN", { required: true });
+    const pullRequestTitle = core.getInput("PULL_REQUEST_TITLE");
+    const pullRequestBody = core.getInput("PULL_REQUEST_BODY");
+    const pullRequestAutoMergeMethod = core.getInput(
+      "PULL_REQUEST_AUTO_MERGE_METHOD"
+    ) as "merge" | "squash" | "rebase" | undefined;
+    const pullRequestIsDraft =
+      core.getInput("PULL_REQUEST_IS_DRAFT").toLowerCase() === "true";
+    const contentComparison =
+      core.getInput("CONTENT_COMPARISON").toLowerCase() === "true";
+    const reviewers = JSON.parse(core.getInput("REVIEWERS"));
+    const team_reviewers = JSON.parse(core.getInput("TEAM_REVIEWERS"));
+    const labels = JSON.parse(core.getInput("LABELS"));
+    let isMerged = false;
+    console.log("30");
 
-  console.log(
-    `Should a pull request to ${toBranch} from ${fromBranch} be created?`
-  );
+    console.log(
+      `Should a pull request to ${toBranch} from ${fromBranch} be created?`
+    );
 
-  const octokit = github.getOctokit(githubToken);
-  console.log("37");
+    const octokit = github.getOctokit(githubToken);
+    console.log("37");
 
-  const { data: currentPulls } = await octokit.rest.pulls.list({
-    owner,
-    repo,
-  });
+    const { data: currentPulls } = await octokit.rest.pulls.list({
+      owner,
+      repo,
+    });
 
-  const currentPull = currentPulls.find((pull) => {
-    return pull.head.ref === fromBranch && pull.base.ref === toBranch;
-  });
+    const currentPull = currentPulls.find((pull) => {
+      return pull.head.ref === fromBranch && pull.base.ref === toBranch;
+    });
 
-  if (!currentPull) {
-    let shouldCreatePullRequest = true;
-    if (contentComparison) {
-      shouldCreatePullRequest = await hasContentDifference(
-        octokit,
-        fromBranch,
-        toBranch
-      );
-    }
-
-    if (shouldCreatePullRequest) {
-      const { data: pullRequest } = await octokit.rest.pulls.create({
-        owner,
-        repo,
-        head: fromBranch,
-        base: toBranch,
-        title: pullRequestTitle
-          ? pullRequestTitle
-          : `sync: ${fromBranch} to ${toBranch}`,
-        body: pullRequestBody
-          ? pullRequestBody
-          : `sync-branches: New code has just landed in ${fromBranch}, so let's bring ${toBranch} up to speed!`,
-        draft: pullRequestIsDraft,
-      });
-
-      if (reviewers.length > 0 || team_reviewers.length > 0) {
-        octokit.rest.pulls.requestReviewers({
-          owner,
-          repo,
-          pull_number: pullRequest.number,
-          reviewers,
-          team_reviewers,
-        });
+    if (!currentPull) {
+      let shouldCreatePullRequest = true;
+      if (contentComparison) {
+        shouldCreatePullRequest = await hasContentDifference(
+          octokit,
+          fromBranch,
+          toBranch
+        );
       }
 
-      if (labels.length > 0) {
-        octokit.rest.issues.addLabels({
+      if (shouldCreatePullRequest) {
+        const { data: pullRequest } = await octokit.rest.pulls.create({
           owner,
           repo,
-          issue_number: pullRequest.number,
-          labels,
+          head: fromBranch,
+          base: toBranch,
+          title: pullRequestTitle
+            ? pullRequestTitle
+            : `sync: ${fromBranch} to ${toBranch}`,
+          body: pullRequestBody
+            ? pullRequestBody
+            : `sync-branches: New code has just landed in ${fromBranch}, so let's bring ${toBranch} up to speed!`,
+          draft: pullRequestIsDraft,
         });
-      }
 
-      if (pullRequestAutoMergeMethod) {
-        try {
-          await octokit.rest.pulls.merge({
+        if (reviewers.length > 0 || team_reviewers.length > 0) {
+          octokit.rest.pulls.requestReviewers({
             owner,
             repo,
             pull_number: pullRequest.number,
-            merge_method: pullRequestAutoMergeMethod,
+            reviewers,
+            team_reviewers,
           });
-          isMerged = true;
-        } catch (err) {
-          isMerged = false;
         }
+
+        if (labels.length > 0) {
+          octokit.rest.issues.addLabels({
+            owner,
+            repo,
+            issue_number: pullRequest.number,
+            labels,
+          });
+        }
+
+        if (pullRequestAutoMergeMethod) {
+          try {
+            await octokit.rest.pulls.merge({
+              owner,
+              repo,
+              pull_number: pullRequest.number,
+              merge_method: pullRequestAutoMergeMethod,
+            });
+            isMerged = true;
+          } catch (err) {
+            isMerged = false;
+          }
+        }
+
+        console.log(
+          `Pull request (${pullRequest.number}) successfully created${
+            isMerged ? " and merged" : " "
+          }! You can view it here: ${pullRequest.url}`
+        );
+
+        core.setOutput("PULL_REQUEST_URL", pullRequest.url.toString());
+        core.setOutput("PULL_REQUEST_NUMBER", pullRequest.number.toString());
+      } else {
+        console.log(
+          `There is no content difference between ${fromBranch} and ${toBranch}.`
+        );
       }
-
-      console.log(
-        `Pull request (${pullRequest.number}) successfully created${
-          isMerged ? " and merged" : " "
-        }! You can view it here: ${pullRequest.url}`
-      );
-
-      core.setOutput("PULL_REQUEST_URL", pullRequest.url.toString());
-      core.setOutput("PULL_REQUEST_NUMBER", pullRequest.number.toString());
     } else {
       console.log(
-        `There is no content difference between ${fromBranch} and ${toBranch}.`
+        `There is already a pull request (${currentPull.number}) to ${toBranch} from ${fromBranch}.`,
+        `You can view it here: ${currentPull.url}`
       );
-    }
-  } else {
-    console.log(
-      `There is already a pull request (${currentPull.number}) to ${toBranch} from ${fromBranch}.`,
-      `You can view it here: ${currentPull.url}`
-    );
 
-    core.setOutput("PULL_REQUEST_URL", currentPull.url.toString());
-    core.setOutput("PULL_REQUEST_NUMBER", currentPull.number.toString());
+      core.setOutput("PULL_REQUEST_URL", currentPull.url.toString());
+      core.setOutput("PULL_REQUEST_NUMBER", currentPull.number.toString());
+    }
+  } catch (error) {
+    if (error instanceof Error) core.setFailed(error.message);
   }
 }
 
